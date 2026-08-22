@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeRoute — Community Safety Map</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<style>
+  :root {
+    --ink: #1c2b2d;
+    --paper: #f7f5f0;
+    --line: #d8d3c4;
+    --high: #c94b3f;
+    --medium: #d98c3d;
+    --low: #4a7c5d;
+    --accent: #2f5d5a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  header {
+    padding: 14px 20px;
+    background: var(--accent);
+    color: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  header h1 {
+    font-size: 18px;
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+
+  header p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
+  #layout {
+    display: flex;
+    height: calc(100vh - 58px);
+    flex-wrap: wrap;
+  }
+
+  #map {
+    flex: 1 1 65%;
+    min-height: 350px;
+  }
+
+  #sidebar {
+    flex: 1 1 320px;
+    max-width: 360px;
+    padding: 16px;
+    overflow-y: auto;
+    border-left: 1px solid var(--line);
+    background: #fffdf9;
+  }
+
+  #sidebar h2 {
+    font-size: 15px;
+    margin: 0 0 6px;
+  }
+
+  #sidebar .hint {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .dot.high { background: var(--high); }
+  .dot.medium { background: var(--medium); }
+  .dot.low { background: var(--low); }
+
+  #reportForm {
+    display: none;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px;
+    background: #fff;
+  }
+
+  #reportForm.active { display: block; }
+
+  #reportForm label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 10px 0 4px;
+  }
+
+  #reportForm .coords {
+    font-size: 11px;
+    color: #777;
+  }
+
+  .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 400;
+    font-size: 13px;
+  }
+
+  select, textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  #reportForm button {
+    margin-top: 12px;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  #reportForm button:hover { opacity: 0.9; }
+
+  #placeholder {
+    font-size: 13px;
+    color: #888;
+    border: 1px dashed var(--line);
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .popup-content { font-size: 13px; }
+  .popup-content b { text-transform: capitalize; }
+
+  #reportsList {
+    margin-top: 18px;
+  }
+
+  #reportsList h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .report-item {
+    font-size: 12px;
+    border-left: 3px solid var(--line);
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    background: #fbfaf6;
+  }
+
+  .report-item.high { border-color: var(--high); }
+  .report-item.medium { border-color: var(--medium); }
+  .report-item.low { border-color: var(--low); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>SafeRoute</h1>
+    <p>Tap the map to drop a report. Data shown below is sample/demo data.</p>
+  </div>
+  <div class="legend">
+    <span><span class="dot high"></span> High severity</span>
+    <span><span class="dot medium"></span> Medium severity</span>
+    <span><span class="dot low"></span> Low severity</span>
+  </div>
+</header>
+
+<div id="layout">
+  <div id="map"></div>
+
+  <div id="sidebar">
+    <h2>Report an area</h2>
+    <p class="hint">Click anywhere on the map to start a report at that location. Reports are anonymous by default.</p>
+
+    <div id="placeholder">Click a location on the map to begin →</div>
+
+    <form id="reportForm">
+      <p class="coords" id="coordsDisplay">Location: —</p>
+
+      <label>Severity</label>
+      <select id="severity" required>
+        <option value="">Select severity</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+
+      <label>Category (select all that apply)</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" name="category" value="assault"> Assault / physical incident</label>
+        <label><input type="checkbox" name="category" value="harassment"> Harassment / catcalling</label>
+        <label><input type="checkbox" name="category" value="poor_lighting"> Poor lighting</label>
+        <label><input type="checkbox" name="category" value="no_cctv"> No CCTV coverage</label>
+        <label><input type="checkbox" name="category" value="isolated"> Isolated / low foot traffic</label>
+        <label><input type="checkbox" name="category" value="accident"> Accident-prone spot</label>
+      </div>
+
+      <label>Description (optional)</label>
+      <textarea id="description" placeholder="Add any details that might help others..."></textarea>
+
+      <button type="submit">Submit report</button>
+    </form>
+
+    <div id="reportsList">
+      <h3>Recent reports (demo data)</h3>
+      <div id="reportsListInner"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- Sample/fake data so the frontend works standalone ----
+  // Replace this with a real fetch('/reports') call once the backend is ready.
+  let reports = [
+    { id: 1, lat: 28.6139, lng: 77.2090, severity: "high", category: ["assault"], description: "Reported incident near this intersection at night." },
+    { id: 2, lat: 28.6229, lng: 77.2080, severity: "medium", category: ["poor_lighting", "isolated"], description: "Street lights not working for weeks." },
+    { id: 3, lat: 28.6100, lng: 77.2300, severity: "low", category: ["no_cctv"], description: "No cameras on this stretch." }
+  ];
+
+  const severityColors = { high: "#c94b3f", medium: "#d98c3d", low: "#4a7c5d" };
+
+  // ---- Map setup ----
+  const map = L.map('map').setView([28.6139, 77.2090], 13);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  let markers = [];
+
+  function renderPins() {
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+
+    reports.forEach(r => {
+      const marker = L.circleMarker([r.lat, r.lng], {
+        radius: 9,
+        fillColor: severityColors[r.severity] || "#888",
+        color: "#fff",
+        weight: 1.5,
+        fillOpacity: 0.9
+      }).addTo(map);
+
+      marker.bindPopup(`
+        <div class="popup-content">
+          <b>${r.severity} severity</b><br>
+          ${r.category.join(", ").replace(/_/g, " ")}<br>
+          ${r.description ? `<i>"${r.description}"</i>` : ""}
+        </div>
+      `);
+
+      markers.push(marker);
+    });
+
+    renderReportsList();
+  }
+
+  function renderReportsList() {
+    const listEl = document.getElementById('reportsListInner');
+    listEl.innerHTML = "";
+    reports.slice().reverse().forEach(r => {
+      const div = document.createElement('div');
+      div.className = `report-item ${r.severity}`;
+      div.innerHTML = `<b>${r.severity}</b> — ${r.category.join(", ").replace(/_/g, " ")}`;
+      listEl.appendChild(div);
+    });
+  }
+
+  // ---- Click-to-report flow ----
+  let pendingLatLng = null;
+  let tempMarker = null;
+
+  map.on('click', function (e) {
+    pendingLatLng = e.latlng;
+
+    if (tempMarker) map.removeLayer(tempMarker);
+    tempMarker = L.marker(e.latlng).addTo(map);
+
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('reportForm').classList.add('active');
+    document.getElementById('coordsDisplay').textContent =
+      `Location: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+  });
+
+  document.getElementById('reportForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    if (!pendingLatLng) return;
+
+    const severity = document.getElementById('severity').value;
+    const description = document.getElementById('description').value;
+    const checkedCategories = Array.from(
+      document.querySelectorAll('input[name="category"]:checked')
+    ).map(cb => cb.value);
+
+    if (!severity || checkedCategories.length === 0) {
+      alert("Please select a severity level and at least one category.");
+      return;
+    }
+
+    const newReport = {
+      id: reports.length + 1,
+      lat: pendingLatLng.lat,
+      lng: pendingLatLng.lng,
+      severity: severity,
+      category: checkedCategories,
+      description: description
+    };
+
+    // ---- Backend hook ----
+    // Replace the line below with a real POST request once the backend is ready:
+    //
+    // fetch('/report', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(newReport)
+    // }).then(() => { reports.push(newReport); renderPins(); resetForm(); });
+
+    reports.push(newReport);
+    renderPins();
+    resetForm();
+  });
+
+  function resetForm() {
+    document.getElementById('reportForm').reset();
+    document.getElementById('reportForm').classList.remove('active');
+    document.getElementById('placeholder').style.display = 'block';
+    if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+    pendingLatLng = null;
+  }
+
+  renderPins();
+</script>
+
+</body>
+</html>

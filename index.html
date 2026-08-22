@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SafeRoute — Interactive Community Safety & Incident Reporting Map centered on Delhi, India powered by Leaflet.js.">
+  <title>SafeRoute — Community Safety Map</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --panel-bg: rgba(30, 41, 59, 0.9);
+      --card-bg: #1e293b;
+      --card-hover: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --border-color: rgba(255, 255, 255, 0.1);
+      
+      --severity-high: #ef4444;
+      --severity-medium: #f97316;
+      --severity-low: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+    }
+
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Navigation Header */
+    header#main-header {
+      height: 64px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .brand-text h1 {
+      font-size: 1.18rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    .brand-text p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .fetch-btn {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+
+    .fetch-btn:hover {
+      background: rgba(56, 189, 248, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .fetch-btn:active {
+      transform: translateY(0);
+    }
+
+    .fetch-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Enhanced Legend Badges */
+    .header-legend {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 30px;
+      padding: 4px 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    .legend-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .legend-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .legend-badge:hover {
+      transform: translateY(-1px);
+    }
+
+    .legend-badge.badge-high {
+      background: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .legend-badge.badge-medium {
+      background: rgba(249, 115, 22, 0.14);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      color: #fdba74;
+    }
+
+    .legend-badge.badge-low {
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .badge-dot.high { background-color: var(--severity-high); box-shadow: 0 0 8px var(--severity-high); }
+    .badge-dot.medium { background-color: var(--severity-medium); box-shadow: 0 0 8px var(--severity-medium); }
+    .badge-dot.low { background-color: var(--severity-low); box-shadow: 0 0 8px var(--severity-low); }
+
+    .badge-count {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 0.68rem;
+      color: var(--text-main);
+    }
+
+    /* Custom Google Maps Style Police Station Pin Marker */
+    .marker-police-container {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .marker-police-pin {
+      width: 44px !important;
+      height: 44px !important;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      border: 3px solid #ffffff;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 22px rgba(37, 99, 235, 0.9), 0 6px 16px rgba(0, 0, 0, 0.6);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .marker-police-pin:hover {
+      transform: rotate(-45deg) scale(1.2);
+      box-shadow: 0 0 28px rgba(59, 130, 246, 1), 0 8px 20px rgba(0, 0, 0, 0.7);
+    }
+
+    .marker-police-icon-inner {
+      transform: rotate(45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Custom Hospital Pin Marker */
+    .marker-hospital-container {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .marker-hospital-pin {
+      width: 32px !important;
+      height: 32px !important;
+      background: linear-gradient(135deg, #b91c1c, #ef4444);
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.6), 0 3px 8px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    .marker-hospital-pin:hover {
+      transform: scale(1.18);
+    }
+
+    /* Custom Fire Station Pin Marker */
+    .marker-fire-container {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .marker-fire-pin {
+      width: 24px !important;
+      height: 24px !important;
+      background: linear-gradient(135deg, #c2410c, #ea580c);
+      border: 1.5px solid #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(234, 88, 12, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    .marker-fire-pin:hover {
+      transform: scale(1.18);
+    }
+
+    /* Main Content Layout */
+    #layout {
+      display: flex;
+      flex: 1;
+      width: 100%;
+      height: calc(100vh - 64px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #map {
+      flex: 1;
+      height: 100%;
+      z-index: 1;
+      background: #0f172a;
+    }
+
+    /* Sidebar Styling */
+    #sidebar {
+      width: 380px;
+      background: var(--bg-dark);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      z-index: 10;
+      padding: 18px;
+      overflow-y: auto;
+      box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
+      gap: 18px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-empty {
+      background: var(--card-bg);
+      border: 1px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 20px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .empty-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+
+    .sidebar-empty h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .sidebar-empty p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Form Container */
+    .sidebar-form-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .sidebar-form-container.hidden {
+      display: none;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .close-btn:hover {
+      color: var(--text-main);
+      background: var(--card-hover);
+    }
+
+    .coords-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+    }
+
+    .coords-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .coords-val {
+      font-family: monospace;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .required {
+      color: var(--severity-high);
+    }
+
+    select, textarea {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.825rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    select option {
+      background: var(--bg-dark);
+      color: var(--text-main);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 65px;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .checkbox-card {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .checkbox-card:hover {
+      background: var(--card-hover);
+      color: var(--text-main);
+    }
+
+    .checkbox-card input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .checkbox-card input[type="checkbox"]:checked + span {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 4px;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .submit-btn:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+    }
+
+    /* Reports Feed */
+    .reports-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .reports-feed h3 {
+      font-size: 0.825rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .reports-count-badge {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .reports-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .report-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.78rem;
+      transition: all 0.2s ease;
+    }
+
+    .report-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .report-severity {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .report-severity.high {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--severity-high);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .report-severity.medium {
+      background: rgba(249, 115, 22, 0.15);
+      color: var(--severity-medium);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+    }
+
+    .report-severity.low {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--severity-low);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .report-time {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+    }
+
+    .report-categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .category-tag {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .report-desc {
+      color: var(--text-main);
+      font-style: italic;
+      font-size: 0.76rem;
+      line-height: 1.3;
+    }
+
+    /* Leaflet UI Overrides */
+    .leaflet-control-zoom {
+      border: none !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+      border-radius: 10px !important;
+      overflow: hidden;
+      margin-top: 16px !important;
+      margin-right: 16px !important;
+    }
+
+    .leaflet-control-zoom a {
+      background-color: var(--panel-bg) !important;
+      color: var(--text-main) !important;
+      border-bottom: 1px solid var(--border-color) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      width: 34px !important;
+      height: 34px !important;
+      line-height: 34px !important;
+      font-weight: bold;
+      transition: background-color 0.2s ease;
+    }
+
+    .leaflet-control-zoom a:hover {
+      background-color: rgba(51, 65, 85, 0.95) !important;
+      color: var(--accent) !important;
+    }
+
+    .leaflet-control-attribution {
+      background: rgba(15, 23, 42, 0.8) !important;
+      color: var(--text-muted) !important;
+      backdrop-filter: blur(8px);
+      padding: 4px 10px !important;
+      border-top-left-radius: 8px;
+      font-size: 0.68rem !important;
+    }
+
+    .leaflet-control-attribution a {
+      color: var(--accent) !important;
+      text-decoration: none;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--panel-bg);
+      color: var(--text-main);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .leaflet-popup-tip {
+      background: var(--panel-bg);
+    }
+
+    .popup-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    .popup-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    /* Responsive Adjustments for Mobile */
+    @media (max-width: 768px) {
+      header#main-header {
+        height: auto;
+        padding: 10px 14px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .header-legend {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      #layout {
+        flex-direction: column;
+        height: calc(100vh - 110px);
+      }
+
+      #map {
+        height: 50%;
+        flex: none;
+      }
+
+      #sidebar {
+        width: 100%;
+        height: 50%;
+        flex: none;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Top Header -->
+    <header id="main-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>SafeRoute</h1>
+          <p>Community Safety Map • Delhi, India</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Button to trigger Overpass API fetch for police/hospital/fire_station -->
+        <button id="fetch-emergency-btn" class="fetch-btn" title="Fetch police stations, hospitals, and fire stations within 2km of map center">
+          🔍 Fetch Services (2km)
+        </button>
+
+        <!-- Severity Guide Badges -->
+        <div class="header-legend" id="header-legend">
+          <span class="legend-label">Severity Guide:</span>
+          <div class="legend-badges">
+            <div class="legend-badge badge-high" title="High Severity Incidents">
+              <span class="badge-dot high"></span>
+              <span>High</span>
+              <span class="badge-count" id="count-high">0</span>
+            </div>
+            <div class="legend-badge badge-medium" title="Medium Severity Incidents">
+              <span class="badge-dot medium"></span>
+              <span>Medium</span>
+              <span class="badge-count" id="count-medium">0</span>
+            </div>
+            <div class="legend-badge badge-low" title="Low Severity Incidents">
+              <span class="badge-dot low"></span>
+              <span>Low</span>
+              <span class="badge-count" id="count-low">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div id="layout">
+      <!-- Interactive Leaflet Map -->
+      <main id="map" aria-label="Interactive Map of Delhi"></main>
+
+      <!-- Sidebar -->
+      <aside id="sidebar">
+        <!-- Sidebar Empty Hint -->
+        <div id="sidebar-placeholder" class="sidebar-empty">
+          <div class="empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <h3>Report a Location</h3>
+          <p>Click anywhere on the map to place a pin and open the safety report form.</p>
+        </div>
+
+        <!-- Sidebar Report Form -->
+        <div id="sidebar-form-container" class="sidebar-form-container hidden">
+          <div class="form-header">
+            <h2>Submit Safety Report</h2>
+            <button id="close-form-btn" class="close-btn" title="Cancel">&times;</button>
+          </div>
+
+          <div class="coords-box">
+            <span class="coords-label">Target Location</span>
+            <span id="form-coords-val" class="coords-val">—</span>
+          </div>
+
+          <form id="safety-report-form">
+            <div class="form-group">
+              <label for="severity-select">Severity Level <span class="required">*</span></label>
+              <select id="severity-select" required>
+                <option value="" disabled selected>Select severity...</option>
+                <option value="High">🔴 High Severity</option>
+                <option value="Medium">🟠 Medium Severity</option>
+                <option value="Low">🟢 Low Severity</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Categories (Select all that apply)</label>
+              <div class="checkbox-grid">
+                <label class="checkbox-card">
+                  <input type="checkbox" name="category" value="Assault">
+                  <span>Assault</span>
+                </label>
+                <label class="checkbox-card">
+                  <input type="checkbox" name="category" value="Harassment">
+                  <span>Harassment</span>
+                </label>
+                <label class="checkbox-card">
+                  <input type="checkbox" name="category" value="Poor lighting">
+                  <span>Poor lighting</span>
+                </label>
+                <label class="checkbox-card">
+                  <input type="checkbox" name="category" value="No CCTV">
+                  <span>No CCTV</span>
+                </label>
+                <label class="checkbox-card">
+                  <input type="checkbox" name="category" value="Isolated area">
+                  <span>Isolated area</span>
+                </label>
+                <label class="checkbox-card">
+                  <input type="checkbox" name="category" value="Accident-prone">
+                  <span>Accident-prone</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="description-input">Description (Optional)</label>
+              <textarea id="description-input" rows="3" placeholder="Add any details that might help others..."></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit Report</button>
+          </form>
+        </div>
+
+        <!-- Submitted Reports Feed -->
+        <div class="reports-feed">
+          <div class="feed-header">
+            <h3>Recent Reports</h3>
+            <span id="reports-count" class="reports-count-badge">0 reports</span>
+          </div>
+          <div id="reports-list" class="reports-list"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const delhiCoords = [28.6139, 77.2090];
+      const initialZoom = 13;
+
+      // Initialize Leaflet Map
+      const map = L.map('map', {
+        zoomControl: false
+      }).setView(delhiCoords, initialZoom);
+
+      L.control.zoom({
+        position: 'topright'
+      }).addTo(map);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Layer group for Overpass emergency services custom markers
+      const emergencyLayerGroup = L.layerGroup().addTo(map);
+
+      // Severity Color Palette
+      const severityColors = {
+        High: '#ef4444',    // Red
+        Medium: '#f97316',  // Orange
+        Low: '#10b981'     // Green
+      };
+
+      // 3 Initial Sample Reports in Delhi
+      const sampleReports = [
+        {
+          id: 1,
+          lat: 28.6139,
+          lng: 77.2090,
+          severity: 'High',
+          categories: ['Assault', 'No CCTV'],
+          description: 'Reported harassment near Central Delhi junction late at night.',
+          timestamp: '10:45 PM'
+        },
+        {
+          id: 2,
+          lat: 28.6250,
+          lng: 77.2150,
+          severity: 'Medium',
+          categories: ['Poor lighting', 'Isolated area'],
+          description: 'Street lights malfunctioning on this stretch for over a week.',
+          timestamp: '09:15 PM'
+        },
+        {
+          id: 3,
+          lat: 28.6020,
+          lng: 77.2250,
+          severity: 'Low',
+          categories: ['Accident-prone'],
+          description: 'Narrow intersection with high traffic during rush hours.',
+          timestamp: '07:30 PM'
+        }
+      ];
+
+      // In-memory reports storage array initialized with sample data
+      let reports = [...sampleReports];
+
+      // Elements
+      const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+      const sidebarFormContainer = document.getElementById('sidebar-form-container');
+      const formCoordsVal = document.getElementById('form-coords-val');
+      const safetyForm = document.getElementById('safety-report-form');
+      const closeFormBtn = document.getElementById('close-form-btn');
+      const reportsList = document.getElementById('reports-list');
+      const reportsCount = document.getElementById('reports-count');
+      const fetchEmergencyBtn = document.getElementById('fetch-emergency-btn');
+
+      const countHighEl = document.getElementById('count-high');
+      const countMediumEl = document.getElementById('count-medium');
+      const countLowEl = document.getElementById('count-low');
+
+      let tempMarker = null;
+      let selectedLatLng = null;
+
+      // Function to render a permanent colored marker for a report
+      function drawReportMarker(report) {
+        const markerColor = severityColors[report.severity] || '#ef4444';
+
+        const reportMarker = L.circleMarker([report.lat, report.lng], {
+          radius: 9,
+          fillColor: markerColor,
+          color: '#ffffff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.95
+        }).addTo(map);
+
+        const catText = report.categories.length > 0
+          ? report.categories.join(', ')
+          : 'General Incident';
+
+        reportMarker.bindPopup(`
+          <div style="padding: 4px;">
+            <div class="popup-title" style="color: ${markerColor};">● ${report.severity} Severity</div>
+            <div class="popup-desc">
+              <b>Categories:</b> ${catText}<br>
+              ${report.description ? `<i>"${report.description}"</i><br>` : ''}
+              <small>Location: ${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}</small>
+            </div>
+          </div>
+        `);
+      }
+
+      // Overpass API Fetch Function: Police stations, Hospitals, Fire stations within 2km (2000m) of map center
+      async function fetchNearbyEmergencyServices() {
+        if (fetchEmergencyBtn) {
+          fetchEmergencyBtn.disabled = true;
+          fetchEmergencyBtn.innerHTML = `⏳ Fetching 2km...`;
+        }
+
+        const center = map.getCenter();
+        const lat = center.lat;
+        const lng = center.lng;
+
+        // Expanded Overpass QL Query covering nodes, ways, relations & common tag variants
+        const query = `
+          [out:json][timeout:25];
+          (
+            nwr["amenity"~"police|police_station"](around:2000,${lat},${lng});
+            nwr["amenity"="hospital"](around:2000,${lat},${lng});
+            nwr["amenity"="fire_station"](around:2000,${lat},${lng});
+            nwr["building"="police"](around:2000,${lat},${lng});
+            nwr["building"="fire_station"](around:2000,${lat},${lng});
+          );
+          out center;
+        `;
+
+        const overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+
+        try {
+          const response = await fetch(overpassUrl);
+          if (!response.ok) throw new Error(`HTTP Error status: ${response.status}`);
+          const data = await response.json();
+
+          // Clear previous emergency markers
+          emergencyLayerGroup.clearLayers();
+
+          let policeCount = 0;
+          let hospitalCount = 0;
+          let fireCount = 0;
+          let count = 0;
+          let policeCreatedCount = 0;
+
+          if (data.elements && data.elements.length > 0) {
+            // Debug logging of counts per category
+            data.elements.forEach(el => {
+              const tags = el.tags || {};
+              const amenity = tags.amenity || '';
+              const building = tags.building || '';
+
+              if (amenity === 'police' || amenity === 'police_station' || building === 'police') {
+                policeCount++;
+              } else if (amenity === 'hospital' || building === 'hospital') {
+                hospitalCount++;
+              } else if (amenity === 'fire_station' || building === 'fire_station') {
+                fireCount++;
+              }
+            });
+
+            console.log(`[DEBUG Overpass API] Radius 2km around (${lat.toFixed(4)}, ${lng.toFixed(4)}):`);
+            console.log(` -> Police Stations Found: ${policeCount}`);
+            console.log(` -> Fire Stations Found: ${fireCount}`);
+            console.log(` -> Hospitals Found: ${hospitalCount}`);
+            console.log(` -> Total Raw Elements: ${data.elements.length}`);
+
+            data.elements.forEach(el => {
+              const elLat = el.lat || (el.center && el.center.lat);
+              const elLng = el.lon || (el.center && el.center.lon);
+
+              if (!elLat || !elLng) return;
+
+              const tags = el.tags || {};
+              const amenity = tags.amenity || '';
+              const building = tags.building || '';
+              const rawName = tags.name || tags['name:en'];
+
+              const isPolice = (amenity === 'police' || amenity === 'police_station' || building === 'police');
+              const isHospital = (amenity === 'hospital' || building === 'hospital');
+              const isFire = (amenity === 'fire_station' || building === 'fire_station');
+
+              let formattedType = 'Emergency Service';
+              let iconHtml = '';
+              let containerClass = '';
+              let iconSize = [24, 24];
+              let iconAnchor = [12, 12];
+              let zIndexOffset = 0;
+              let titleColor = '#38bdf8';
+
+              if (isPolice) {
+                policeCreatedCount++;
+                formattedType = 'Police Station';
+                containerClass = 'marker-police-container';
+                iconSize = [44, 44];
+                iconAnchor = [22, 44]; // Anchor at bottom tip of teardrop pin!
+                zIndexOffset = 2000; // Police stations most prominent & highest z-index
+                titleColor = '#2563eb';
+                // Distinct Google Maps style blue shield badge pin
+                iconHtml = `
+                  <div class="marker-police-pin" title="${rawName || 'Police Station'}">
+                    <div class="marker-police-icon-inner">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22S20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" fill="#FFFFFF" stroke="#1E40AF" stroke-width="1.5"/>
+                        <path d="M12 6L13.5 9.5H17L14.2 11.6L15.3 15L12 12.8L8.7 15L9.8 11.6L7 9.5H10.5L12 6Z" fill="#1D4ED8"/>
+                      </svg>
+                    </div>
+                  </div>`;
+                console.log(`[POLICE MARKER CREATED #${policeCreatedCount}] "${rawName || 'Police Station'}" at (${elLat.toFixed(4)}, ${elLng.toFixed(4)})`);
+              } else if (isHospital) {
+                formattedType = 'Hospital';
+                containerClass = 'marker-hospital-container';
+                iconSize = [32, 32];
+                iconAnchor = [16, 16];
+                zIndexOffset = 500; // Medium prominence
+                titleColor = '#ef4444';
+                iconHtml = `
+                  <div class="marker-hospital-pin" title="${rawName || 'Hospital'}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  </div>`;
+              } else if (isFire) {
+                formattedType = 'Fire Station';
+                containerClass = 'marker-fire-container';
+                iconSize = [24, 24];
+                iconAnchor = [12, 12];
+                zIndexOffset = 100; // Lower prominence
+                titleColor = '#f97316';
+                iconHtml = `
+                  <div class="marker-fire-pin" title="${rawName || 'Fire Station'}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></path></svg>
+                  </div>`;
+              }
+
+              const placeName = rawName || `${formattedType} (${elLat.toFixed(3)}, ${elLng.toFixed(3)})`;
+
+              // Create Custom Leaflet DivIcon
+              const customIcon = L.divIcon({
+                className: containerClass,
+                html: iconHtml,
+                iconSize: iconSize,
+                iconAnchor: iconAnchor,
+                popupAnchor: [0, -iconAnchor[1]]
+              });
+
+              const emergencyMarker = L.marker([elLat, elLng], {
+                icon: customIcon,
+                zIndexOffset: zIndexOffset
+              });
+
+              // Bind Popup to marker for click verification
+              emergencyMarker.bindPopup(`
+                <div style="padding: 6px;">
+                  <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                    <span style="background: ${titleColor}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">
+                      👮 ${formattedType}
+                    </span>
+                  </div>
+                  <div class="popup-title" style="color: #ffffff; font-size: 0.95rem;">📍 ${placeName}</div>
+                  <div class="popup-desc" style="margin-top: 4px;">
+                    ${tags['addr:street'] ? `Address: <b>${tags['addr:street']}</b><br>` : ''}
+                    ${tags['operator'] ? `Operator: <b>${tags['operator']}</b><br>` : ''}
+                    <small style="color: #94a3b8;">Coordinates: ${elLat.toFixed(4)}, ${elLng.toFixed(4)}</small>
+                  </div>
+                </div>
+              `);
+
+              emergencyLayerGroup.addLayer(emergencyMarker);
+              count++;
+            });
+          } else {
+            console.log(`[DEBUG Overpass API] Zero elements returned for center (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+          }
+
+          if (fetchEmergencyBtn) {
+            fetchEmergencyBtn.disabled = false;
+            fetchEmergencyBtn.innerHTML = `🏛️ ${count} Services Loaded`;
+          }
+        } catch (err) {
+          console.error('Failed to fetch from primary Overpass endpoint:', err);
+          if (fetchEmergencyBtn) {
+            fetchEmergencyBtn.disabled = false;
+            fetchEmergencyBtn.innerHTML = `🔍 Fetch Services (2km)`;
+          }
+        }
+      }
+
+      // Draw initial sample report markers on load
+      reports.forEach(r => drawReportMarker(r));
+      renderReportsFeed();
+
+      // Trigger initial Overpass API fetch on load
+      fetchNearbyEmergencyServices();
+
+      // Click event for manual re-fetching at current map center
+      if (fetchEmergencyBtn) {
+        fetchEmergencyBtn.addEventListener('click', () => {
+          fetchNearbyEmergencyServices();
+        });
+      }
+
+      // Map Click Handler
+      map.on('click', (e) => {
+        selectedLatLng = e.latlng;
+        const formattedLat = selectedLatLng.lat.toFixed(5);
+        const formattedLng = selectedLatLng.lng.toFixed(5);
+
+        // Update/Place Temporary Marker
+        if (tempMarker) {
+          tempMarker.setLatLng(selectedLatLng);
+        } else {
+          tempMarker = L.marker(selectedLatLng, { title: "Selected Location" }).addTo(map);
+        }
+
+        tempMarker.bindPopup(`
+          <div style="padding: 4px;">
+            <div class="popup-title">📍 Selected Location</div>
+            <div class="popup-desc">Lat: <b>${formattedLat}</b> | Lng: <b>${formattedLng}</b></div>
+          </div>
+        `).openPopup();
+
+        // Show sidebar form
+        sidebarPlaceholder.style.display = 'none';
+        sidebarFormContainer.classList.remove('hidden');
+        formCoordsVal.textContent = `${formattedLat}, ${formattedLng}`;
+
+        // Scroll sidebar to top
+        document.getElementById('sidebar').scrollTop = 0;
+      });
+
+      // Close Form Handler
+      closeFormBtn.addEventListener('click', () => {
+        resetFormState();
+      });
+
+      function resetFormState() {
+        if (tempMarker) {
+          map.removeLayer(tempMarker);
+          tempMarker = null;
+        }
+        selectedLatLng = null;
+        safetyForm.reset();
+        sidebarFormContainer.classList.add('hidden');
+        sidebarPlaceholder.style.display = 'flex';
+      }
+
+      // Form Submit Handler
+      safetyForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        if (!selectedLatLng) return;
+
+        const severity = document.getElementById('severity-select').value;
+        const checkedCategories = Array.from(
+          document.querySelectorAll('input[name="category"]:checked')
+        ).map(cb => cb.value);
+
+        const description = document.getElementById('description-input').value.trim();
+
+        const newReport = {
+          id: Date.now(),
+          lat: selectedLatLng.lat,
+          lng: selectedLatLng.lng,
+          severity: severity,
+          categories: checkedCategories,
+          description: description,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        // 1. Add report to in-memory array
+        reports.push(newReport);
+
+        // 2. Draw permanent colored marker on map
+        drawReportMarker(newReport);
+
+        // 3. Update Sidebar Feed (most recent first) & counts
+        renderReportsFeed();
+
+        // 4. Clear form & temporary marker
+        resetFormState();
+      });
+
+      // Render reports list in sidebar & update severity badge counters
+      function renderReportsFeed() {
+        reportsCount.textContent = `${reports.length} report${reports.length !== 1 ? 's' : ''}`;
+        reportsList.innerHTML = '';
+
+        // Calculate severity counts
+        let highCount = 0;
+        let mediumCount = 0;
+        let lowCount = 0;
+
+        reports.forEach(r => {
+          if (r.severity === 'High') highCount++;
+          else if (r.severity === 'Medium') mediumCount++;
+          else if (r.severity === 'Low') lowCount++;
+        });
+
+        countHighEl.textContent = highCount;
+        countMediumEl.textContent = mediumCount;
+        countLowEl.textContent = lowCount;
+
+        // Reverse array to show most recent first
+        reports.slice().reverse().forEach(r => {
+          const card = document.createElement('div');
+          card.className = 'report-card';
+
+          const sevClass = r.severity.toLowerCase();
+          const catBadges = r.categories.length > 0
+            ? r.categories.map(c => `<span class="category-tag">${c}</span>`).join('')
+            : '<span class="category-tag">General</span>';
+
+          card.innerHTML = `
+            <div class="report-header">
+              <span class="report-severity ${sevClass}">
+                ● ${r.severity} Severity
+              </span>
+              <span class="report-time">${r.timestamp}</span>
+            </div>
+            <div class="report-categories">${catBadges}</div>
+            ${r.description ? `<p class="report-desc">"${r.description}"</p>` : ''}
+          `;
+
+          reportsList.appendChild(card);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
