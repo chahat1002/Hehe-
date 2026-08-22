@@ -28,7 +28,7 @@
       
       --severity-high: #ef4444;
       --severity-medium: #f97316;
-      --severity-low: #10b981;
+      --severity-low: #eab308;
     }
 
     * {
@@ -194,9 +194,9 @@
     }
 
     .legend-badge.badge-low {
-      background: rgba(16, 185, 129, 0.14);
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      color: #6ee7b7;
+      background: rgba(234, 179, 8, 0.14);
+      border: 1px solid rgba(234, 179, 8, 0.35);
+      color: #fde047;
     }
 
     .badge-dot {
@@ -216,6 +216,44 @@
       border-radius: 10px;
       font-size: 0.68rem;
       color: var(--text-main);
+    }
+
+    /* Confirmed Zone Marker Styling (report_count >= 5) */
+    .confirmed-report-container {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .confirmed-report-pin {
+      width: 26px !important;
+      height: 26px !important;
+      border-radius: 50%;
+      border: 3.5px solid #ffffff;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .confirmed-report-pin:hover {
+      transform: scale(1.25);
+    }
+
+    .confirmed-count-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #0f172a;
+      color: #ffffff;
+      border: 1.5px solid #ffffff;
+      border-radius: 50%;
+      width: 17px;
+      height: 17px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
     }
 
     /* Custom Google Maps Style Police Station Pin Marker */
@@ -320,7 +358,7 @@
 
     /* Sidebar Styling */
     #sidebar {
-      width: 380px;
+      width: 390px;
       background: var(--bg-dark);
       border-left: 1px solid var(--border-color);
       display: flex;
@@ -338,7 +376,7 @@
       background: var(--card-bg);
       border: 1px dashed var(--border-color);
       border-radius: 12px;
-      padding: 20px 16px;
+      padding: 18px 16px;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -347,8 +385,8 @@
     }
 
     .empty-icon {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: rgba(56, 189, 248, 0.1);
       display: flex;
@@ -367,6 +405,168 @@
       font-size: 0.78rem;
       color: var(--text-muted);
       line-height: 1.4;
+    }
+
+    /* Route Planner Panel Styling */
+    .route-planner-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .route-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    .route-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .route-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .route-input-group label {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .route-input-wrapper {
+      display: flex;
+      gap: 6px;
+    }
+
+    .route-input-wrapper input {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.78rem;
+      outline: none;
+    }
+
+    .route-input-wrapper input:focus {
+      border-color: var(--accent);
+    }
+
+    .pick-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 0 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .pick-btn:hover, .pick-btn.active {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+    }
+
+    .route-mode-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .route-mode-row label {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .route-mode-row select {
+      flex: 1;
+      padding: 8px;
+      font-size: 0.78rem;
+    }
+
+    .calc-btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px var(--accent-glow);
+      white-space: nowrap;
+    }
+
+    .calc-btn:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+    }
+
+    .route-result-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.78rem;
+      animation: slideIn 0.3s ease;
+    }
+
+    .route-result-box.hidden {
+      display: none;
+    }
+
+    .route-safe-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      line-height: 1.3;
+    }
+
+    .route-safe-badge.safe {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .route-safe-badge.standard {
+      background: rgba(100, 116, 139, 0.18);
+      color: #cbd5e1;
+      border: 1px solid rgba(100, 116, 139, 0.4);
     }
 
     /* Form Container */
@@ -626,9 +826,9 @@
     }
 
     .report-severity.low {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(234, 179, 8, 0.15);
       color: var(--severity-low);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      border: 1px solid rgba(234, 179, 8, 0.3);
     }
 
     .report-time {
@@ -819,6 +1019,46 @@
 
       <!-- Sidebar -->
       <aside id="sidebar">
+        <!-- OSRM Route Planner & Proximity Safety Check Card -->
+        <div id="route-planner-card" class="route-planner-card">
+          <div class="card-title">
+            <span>🗺️ Route &amp; Safety Check</span>
+          </div>
+          <p class="route-hint">Calculate OSRM walking/driving routes &amp; check proximity to safety stations (&lt;1km).</p>
+
+          <div class="route-form">
+            <div class="route-input-group">
+              <label>Start Location</label>
+              <div class="route-input-wrapper">
+                <input type="text" id="start-coords-input" value="28.6139, 77.2090" placeholder="e.g. 28.6139, 77.2090 or click Pick" />
+                <button type="button" id="pick-start-btn" class="pick-btn" title="Set next map click as Start">📍 Pick</button>
+              </div>
+            </div>
+
+            <div class="route-input-group">
+              <label>Destination Location</label>
+              <div class="route-input-wrapper">
+                <input type="text" id="dest-coords-input" value="28.6250, 77.2150" placeholder="e.g. 28.6250, 77.2150 or click Pick" />
+                <button type="button" id="pick-dest-btn" class="pick-btn" title="Set next map click as Destination">🏁 Pick</button>
+              </div>
+            </div>
+
+            <div class="route-mode-row">
+              <label for="route-mode-select">Profile:</label>
+              <select id="route-mode-select">
+                <option value="foot">🚶 Walking</option>
+                <option value="car">🚗 Driving</option>
+              </select>
+              <button type="button" id="calc-route-btn" class="calc-btn">Calculate Route</button>
+            </div>
+          </div>
+
+          <div id="route-result-box" class="route-result-box hidden">
+            <div id="route-badge-container"></div>
+            <div id="route-info-details"></div>
+          </div>
+        </div>
+
         <!-- Sidebar Empty Hint -->
         <div id="sidebar-placeholder" class="sidebar-empty">
           <div class="empty-icon">
@@ -850,7 +1090,7 @@
                 <option value="" disabled selected>Select severity...</option>
                 <option value="High">🔴 High Severity</option>
                 <option value="Medium">🟠 Medium Severity</option>
-                <option value="Low">🟢 Low Severity</option>
+                <option value="Low">🟡 Low Severity</option>
               </select>
             </div>
 
@@ -927,17 +1167,21 @@
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      // Layer group for Overpass emergency services custom markers
+      // Layer groups
       const emergencyLayerGroup = L.layerGroup().addTo(map);
+      const routeLayerGroup = L.layerGroup().addTo(map);
+
+      // Array to store all loaded emergency service points: { lat, lng, type, name }
+      let fetchedEmergencyServices = [];
 
       // Severity Color Palette
       const severityColors = {
         High: '#ef4444',    // Red
         Medium: '#f97316',  // Orange
-        Low: '#10b981'     // Green
+        Low: '#eab308'     // Yellow/Amber
       };
 
-      // 3 Initial Sample Reports in Delhi
+      // 3 Initial Sample Reports in Delhi (including 1 confirmed zone with 6 reports)
       const sampleReports = [
         {
           id: 1,
@@ -945,8 +1189,9 @@
           lng: 77.2090,
           severity: 'High',
           categories: ['Assault', 'No CCTV'],
-          description: 'Reported harassment near Central Delhi junction late at night.',
-          timestamp: '10:45 PM'
+          description: 'Multiple users reported harassment & assault near Central Delhi junction late at night.',
+          timestamp: '10:45 PM',
+          report_count: 6  // Confirmed zone (>= 5 reports)
         },
         {
           id: 2,
@@ -955,7 +1200,8 @@
           severity: 'Medium',
           categories: ['Poor lighting', 'Isolated area'],
           description: 'Street lights malfunctioning on this stretch for over a week.',
-          timestamp: '09:15 PM'
+          timestamp: '09:15 PM',
+          report_count: 2
         },
         {
           id: 3,
@@ -964,7 +1210,8 @@
           severity: 'Low',
           categories: ['Accident-prone'],
           description: 'Narrow intersection with high traffic during rush hours.',
-          timestamp: '07:30 PM'
+          timestamp: '07:30 PM',
+          report_count: 1
         }
       ];
 
@@ -985,32 +1232,69 @@
       const countMediumEl = document.getElementById('count-medium');
       const countLowEl = document.getElementById('count-low');
 
+      // Route Planner Elements
+      const startCoordsInput = document.getElementById('start-coords-input');
+      const destCoordsInput = document.getElementById('dest-coords-input');
+      const pickStartBtn = document.getElementById('pick-start-btn');
+      const pickDestBtn = document.getElementById('pick-dest-btn');
+      const calcRouteBtn = document.getElementById('calc-route-btn');
+
       let tempMarker = null;
       let selectedLatLng = null;
+      let activePickMode = null; // 'start' | 'dest' | null
 
       // Function to render a permanent colored marker for a report
       function drawReportMarker(report) {
         const markerColor = severityColors[report.severity] || '#ef4444';
+        const count = report.report_count || 1;
+        const isConfirmed = count >= 5;
 
-        const reportMarker = L.circleMarker([report.lat, report.lng], {
-          radius: 9,
-          fillColor: markerColor,
-          color: '#ffffff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.95
-        }).addTo(map);
+        let reportMarker;
+
+        if (isConfirmed) {
+          // Confirmed zone (report_count >= 5): bold outline & top-right count badge
+          const customIcon = L.divIcon({
+            className: 'confirmed-report-container',
+            html: `
+              <div class="confirmed-report-pin" style="background-color: ${markerColor}; box-shadow: 0 0 16px ${markerColor}, 0 4px 10px rgba(0,0,0,0.5);">
+                <div class="confirmed-count-badge" title="${count} Reports Logged">${count}</div>
+              </div>`,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+          });
+
+          reportMarker = L.marker([report.lat, report.lng], {
+            icon: customIcon,
+            zIndexOffset: 1500
+          }).addTo(map);
+        } else {
+          // Standard report (< 5 reports): original circleMarker pin, no badge
+          reportMarker = L.circleMarker([report.lat, report.lng], {
+            radius: 9,
+            fillColor: markerColor,
+            color: '#ffffff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.95
+          }).addTo(map);
+        }
 
         const catText = report.categories.length > 0
           ? report.categories.join(', ')
           : 'General Incident';
 
+        const confirmedTag = isConfirmed
+          ? `<div style="background: rgba(239,68,68,0.2); border: 1px solid #ef4444; color: #fca5a5; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">🔥 Confirmed Hazard Zone (${count} Reports)</div>`
+          : '';
+
         reportMarker.bindPopup(`
           <div style="padding: 4px;">
+            ${confirmedTag}
             <div class="popup-title" style="color: ${markerColor};">● ${report.severity} Severity</div>
             <div class="popup-desc">
               <b>Categories:</b> ${catText}<br>
               ${report.description ? `<i>"${report.description}"</i><br>` : ''}
+              <small>Reports Logged: <b>${count}</b></small><br>
               <small>Location: ${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}</small>
             </div>
           </div>
@@ -1048,8 +1332,9 @@
           if (!response.ok) throw new Error(`HTTP Error status: ${response.status}`);
           const data = await response.json();
 
-          // Clear previous emergency markers
+          // Clear previous emergency markers and reset dataset
           emergencyLayerGroup.clearLayers();
+          fetchedEmergencyServices = [];
 
           let policeCount = 0;
           let hospitalCount = 0;
@@ -1107,10 +1392,9 @@
                 formattedType = 'Police Station';
                 containerClass = 'marker-police-container';
                 iconSize = [44, 44];
-                iconAnchor = [22, 44]; // Anchor at bottom tip of teardrop pin!
-                zIndexOffset = 2000; // Police stations most prominent & highest z-index
+                iconAnchor = [22, 44];
+                zIndexOffset = 2000;
                 titleColor = '#2563eb';
-                // Distinct Google Maps style blue shield badge pin
                 iconHtml = `
                   <div class="marker-police-pin" title="${rawName || 'Police Station'}">
                     <div class="marker-police-icon-inner">
@@ -1120,13 +1404,12 @@
                       </svg>
                     </div>
                   </div>`;
-                console.log(`[POLICE MARKER CREATED #${policeCreatedCount}] "${rawName || 'Police Station'}" at (${elLat.toFixed(4)}, ${elLng.toFixed(4)})`);
               } else if (isHospital) {
                 formattedType = 'Hospital';
                 containerClass = 'marker-hospital-container';
                 iconSize = [32, 32];
                 iconAnchor = [16, 16];
-                zIndexOffset = 500; // Medium prominence
+                zIndexOffset = 500;
                 titleColor = '#ef4444';
                 iconHtml = `
                   <div class="marker-hospital-pin" title="${rawName || 'Hospital'}">
@@ -1137,7 +1420,7 @@
                 containerClass = 'marker-fire-container';
                 iconSize = [24, 24];
                 iconAnchor = [12, 12];
-                zIndexOffset = 100; // Lower prominence
+                zIndexOffset = 100;
                 titleColor = '#f97316';
                 iconHtml = `
                   <div class="marker-fire-pin" title="${rawName || 'Fire Station'}">
@@ -1146,6 +1429,14 @@
               }
 
               const placeName = rawName || `${formattedType} (${elLat.toFixed(3)}, ${elLng.toFixed(3)})`;
+
+              // Save to emergency services dataset for route proximity check
+              fetchedEmergencyServices.push({
+                lat: elLat,
+                lng: elLng,
+                type: formattedType,
+                name: placeName
+              });
 
               // Create Custom Leaflet DivIcon
               const customIcon = L.divIcon({
@@ -1161,12 +1452,11 @@
                 zIndexOffset: zIndexOffset
               });
 
-              // Bind Popup to marker for click verification
               emergencyMarker.bindPopup(`
                 <div style="padding: 6px;">
                   <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
                     <span style="background: ${titleColor}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">
-                      👮 ${formattedType}
+                      ${formattedType}
                     </span>
                   </div>
                   <div class="popup-title" style="color: #ffffff; font-size: 0.95rem;">📍 ${placeName}</div>
@@ -1181,8 +1471,6 @@
               emergencyLayerGroup.addLayer(emergencyMarker);
               count++;
             });
-          } else {
-            console.log(`[DEBUG Overpass API] Zero elements returned for center (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
           }
 
           if (fetchEmergencyBtn) {
@@ -1212,8 +1500,236 @@
         });
       }
 
-      // Map Click Handler
+      // --- Distance & Proximity Helpers for Route Check ---
+
+      // Distance from Point (pLat, pLng) to Line Segment A(aLat, aLng)-B(bLat, bLng) in meters
+      function getDistanceToSegment(pLat, pLng, aLat, aLng, bLat, bLng) {
+        const cosLat = Math.cos(aLat * Math.PI / 180);
+        const x = (pLng - aLng) * 111320 * cosLat;
+        const y = (pLat - aLat) * 110574;
+
+        const bx = (bLng - aLng) * 111320 * cosLat;
+        const by = (bLat - aLat) * 110574;
+
+        const l2 = bx * bx + by * by;
+        if (l2 === 0) return Math.sqrt(x * x + y * y);
+
+        let t = (x * bx + y * by) / l2;
+        t = Math.max(0, Math.min(1, t));
+
+        const projX = t * bx;
+        const projY = t * by;
+
+        const dx = x - projX;
+        const dy = y - projY;
+
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      // Check if point P is within maxDistanceMeters (1000m / 1km) of route path
+      function isPointNearRoute(pLat, pLng, routeCoords, maxDistanceMeters = 1000) {
+        for (let i = 0; i < routeCoords.length - 1; i++) {
+          const a = routeCoords[i];
+          const b = routeCoords[i + 1];
+          const dist = getDistanceToSegment(pLat, pLng, a[0], a[1], b[0], b[1]);
+          if (dist <= maxDistanceMeters) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // --- Route Calculation using OSRM Free API ---
+      async function calculateAndCheckRoute() {
+        const startVal = startCoordsInput.value.trim();
+        const destVal = destCoordsInput.value.trim();
+
+        if (!startVal || !destVal) {
+          alert('Please enter or pick both Start and Destination coordinates.');
+          return;
+        }
+
+        const startParts = startVal.split(',').map(s => parseFloat(s.trim()));
+        const destParts = destVal.split(',').map(s => parseFloat(s.trim()));
+
+        if (startParts.length < 2 || isNaN(startParts[0]) || isNaN(startParts[1]) ||
+            destParts.length < 2 || isNaN(destParts[0]) || isNaN(destParts[1])) {
+          alert('Invalid coordinates format. Use "Lat, Lng" (e.g. 28.6139, 77.2090) or click "Pick" to click on the map.');
+          return;
+        }
+
+        const [startLat, startLng] = startParts;
+        const [destLat, destLng] = destParts;
+
+        const mode = document.getElementById('route-mode-select').value; // 'foot' or 'car'
+        calcRouteBtn.disabled = true;
+        calcRouteBtn.innerHTML = '⏳ Routing...';
+
+        // OSRM API URL (Coordinates in [Longitude, Latitude] format)
+        const osrmUrl = `https://router.project-osrm.org/route/v1/${mode}/${startLng},${startLat};${destLng},${destLat}?overview=full&geometries=geojson`;
+
+        try {
+          const response = await fetch(osrmUrl);
+          if (!response.ok) throw new Error('OSRM API request failed');
+          const data = await response.json();
+
+          if (!data.routes || data.routes.length === 0) {
+            alert('No route found between the selected points.');
+            calcRouteBtn.disabled = false;
+            calcRouteBtn.innerHTML = 'Calculate Route';
+            return;
+          }
+
+          const route = data.routes[0];
+          const geoJsonCoords = route.geometry.coordinates; // [ [lng, lat], ... ]
+          const routeLatLngs = geoJsonCoords.map(c => [c[1], c[0]]); // [ [lat, lng], ... ]
+
+          // Count safety points (police, hospital, fire station) passing within 1km (1000m) of the route line
+          let nearbySafetyPointsCount = 0;
+          const matchedServices = [];
+
+          fetchedEmergencyServices.forEach(s => {
+            if (isPointNearRoute(s.lat, s.lng, routeLatLngs, 1000)) {
+              nearbySafetyPointsCount++;
+              matchedServices.push(s);
+            }
+          });
+
+          console.log(`[OSRM ROUTE CHECK] Total safety points within 1km of route = ${nearbySafetyPointsCount}`);
+
+          // Color condition: Green (#10b981) if >= 3, Normal Neutral (#64748b) if < 3
+          const isSafeRoute = nearbySafetyPointsCount >= 3;
+          const routeColor = isSafeRoute ? '#10b981' : '#64748b';
+          const routeWeight = isSafeRoute ? 6 : 4;
+
+          // Clear previous route
+          routeLayerGroup.clearLayers();
+
+          // Draw route polyline
+          const polyline = L.polyline(routeLatLngs, {
+            color: routeColor,
+            weight: routeWeight,
+            opacity: 0.9,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(routeLayerGroup);
+
+          // If safe route, add a glowing green outer stroke
+          if (isSafeRoute) {
+            L.polyline(routeLatLngs, {
+              color: '#34d399',
+              weight: 10,
+              opacity: 0.35,
+              lineCap: 'round',
+              lineJoin: 'round'
+            }).addTo(routeLayerGroup);
+          }
+
+          // Add Start Marker (🟢)
+          const startMarker = L.marker([startLat, startLng], {
+            icon: L.divIcon({
+              className: 'route-flag-start',
+              html: `<div style="background:#10b981; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:11px; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.5);">🟢 Start</div>`,
+              iconSize: [60, 24],
+              iconAnchor: [30, 12]
+            })
+          }).addTo(routeLayerGroup);
+          startMarker.bindPopup('<b>🟢 Route Start</b>');
+
+          // Add Destination Marker (🏁)
+          const destMarker = L.marker([destLat, destLng], {
+            icon: L.divIcon({
+              className: 'route-flag-dest',
+              html: `<div style="background:#ef4444; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:11px; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.5);">🏁 Destination</div>`,
+              iconSize: [90, 24],
+              iconAnchor: [45, 12]
+            })
+          }).addTo(routeLayerGroup);
+          destMarker.bindPopup('<b>🏁 Route Destination</b>');
+
+          // Zoom map to fit route
+          map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+
+          // Update UI results box
+          const resultBox = document.getElementById('route-result-box');
+          const badgeContainer = document.getElementById('route-badge-container');
+          const infoDetails = document.getElementById('route-info-details');
+
+          resultBox.classList.remove('hidden');
+
+          const distanceKm = (route.distance / 1000).toFixed(2);
+          const durationMin = Math.round(route.duration / 60);
+
+          if (isSafeRoute) {
+            badgeContainer.innerHTML = `
+              <div class="route-safe-badge safe">
+                🛡️ SAFE ROUTE VERIFIED (${nearbySafetyPointsCount} Safety Points &lt;1km)
+              </div>`;
+          } else {
+            badgeContainer.innerHTML = `
+              <div class="route-safe-badge standard">
+                ℹ️ STANDARD ROUTE (${nearbySafetyPointsCount} Safety Points &lt;1km)
+              </div>`;
+          }
+
+          infoDetails.innerHTML = `
+            <div style="margin-top:4px; color:var(--text-main);">
+              <b>Distance:</b> ${distanceKm} km | <b>Est. Time:</b> ${durationMin} mins (${mode === 'foot' ? 'Walking' : 'Driving'})
+            </div>
+            <div style="margin-top:4px; color:var(--text-muted); font-size:0.72rem;">
+              Safety Stations Passed (&lt;1km): ${nearbySafetyPointsCount >= 3 ? `<b style="color:#34d399;">${nearbySafetyPointsCount} stations (Highlighted in Green)</b>` : `<b style="color:#cbd5e1;">${nearbySafetyPointsCount} stations (Requires 3+ for Green highlight)</b>`}
+            </div>
+          `;
+
+          calcRouteBtn.disabled = false;
+          calcRouteBtn.innerHTML = 'Calculate Route';
+        } catch (err) {
+          console.error('OSRM route calculation error:', err);
+          alert('Failed to calculate route from OSRM API.');
+          calcRouteBtn.disabled = false;
+          calcRouteBtn.innerHTML = 'Calculate Route';
+        }
+      }
+
+      // Route button listeners
+      calcRouteBtn.addEventListener('click', calculateAndCheckRoute);
+
+      pickStartBtn.addEventListener('click', () => {
+        activePickMode = 'start';
+        pickStartBtn.classList.add('active');
+        pickDestBtn.classList.remove('active');
+        document.getElementById('map').style.cursor = 'crosshair';
+      });
+
+      pickDestBtn.addEventListener('click', () => {
+        activePickMode = 'dest';
+        pickDestBtn.classList.add('active');
+        pickStartBtn.classList.remove('active');
+        document.getElementById('map').style.cursor = 'crosshair';
+      });
+
+      // Map Click Handler for Pickers & Incident Reporting
       map.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        const formattedCoords = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+        if (activePickMode === 'start') {
+          startCoordsInput.value = formattedCoords;
+          activePickMode = null;
+          pickStartBtn.classList.remove('active');
+          document.getElementById('map').style.cursor = '';
+          return;
+        }
+
+        if (activePickMode === 'dest') {
+          destCoordsInput.value = formattedCoords;
+          activePickMode = null;
+          pickDestBtn.classList.remove('active');
+          document.getElementById('map').style.cursor = '';
+          return;
+        }
+
+        // Standard map click -> drop temporary pin & show incident report form
         selectedLatLng = e.latlng;
         const formattedLat = selectedLatLng.lat.toFixed(5);
         const formattedLng = selectedLatLng.lng.toFixed(5);
@@ -1237,8 +1753,8 @@
         sidebarFormContainer.classList.remove('hidden');
         formCoordsVal.textContent = `${formattedLat}, ${formattedLng}`;
 
-        // Scroll sidebar to top
-        document.getElementById('sidebar').scrollTop = 0;
+        // Scroll sidebar to form
+        sidebarFormContainer.scrollIntoView({ behavior: 'smooth' });
       });
 
       // Close Form Handler
@@ -1277,7 +1793,8 @@
           severity: severity,
           categories: checkedCategories,
           description: description,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          report_count: 1
         };
 
         // 1. Add report to in-memory array
@@ -1323,11 +1840,16 @@
             ? r.categories.map(c => `<span class="category-tag">${c}</span>`).join('')
             : '<span class="category-tag">General</span>';
 
+          const countBadge = (r.report_count && r.report_count >= 5)
+            ? `<span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 10px;">🔥 ${r.report_count} Reports</span>`
+            : '';
+
           card.innerHTML = `
             <div class="report-header">
               <span class="report-severity ${sevClass}">
                 ● ${r.severity} Severity
               </span>
+              ${countBadge}
               <span class="report-time">${r.timestamp}</span>
             </div>
             <div class="report-categories">${catBadges}</div>
