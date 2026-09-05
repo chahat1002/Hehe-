@@ -641,6 +641,52 @@
       font-weight: 600;
     }
 
+    /* Danger Zone Alert in Sidebar */
+    .danger-zone-alert {
+      background: rgba(239, 68, 68, 0.18);
+      border: 1.5px solid #ef4444;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fca5a5;
+      animation: pulseDanger 2s infinite ease-in-out;
+    }
+
+    .danger-zone-alert.hidden {
+      display: none;
+    }
+
+    @keyframes pulseDanger {
+      0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.35); }
+      50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.85); }
+    }
+
+    .danger-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .danger-text strong {
+      display: block;
+      color: #ffffff;
+      font-size: 0.82rem;
+      letter-spacing: 0.02em;
+    }
+
+    .danger-text p {
+      font-size: 0.74rem;
+      color: #fca5a5;
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    .danger-zone-badge-container {
+      background: transparent !important;
+      border: none !important;
+    }
+
     .form-group {
       display: flex;
       flex-direction: column;
@@ -1083,6 +1129,15 @@
             <span id="form-coords-val" class="coords-val">—</span>
           </div>
 
+          <!-- Danger Zone Alert Banner (>= 10 High Reports within 500m) -->
+          <div id="danger-zone-alert" class="danger-zone-alert hidden">
+            <span class="danger-icon">🚨</span>
+            <div class="danger-text">
+              <strong>⚠️ DANGER ZONE DETECTED</strong>
+              <p id="danger-alert-detail">10+ High Severity Reports detected within 500m of this location!</p>
+            </div>
+          </div>
+
           <form id="safety-report-form">
             <div class="form-group">
               <label for="severity-select">Severity Level <span class="required">*</span></label>
@@ -1170,11 +1225,19 @@
       // Layer groups
       const emergencyLayerGroup = L.layerGroup().addTo(map);
       const routeLayerGroup = L.layerGroup().addTo(map);
+      const dangerZoneLayerGroup = L.layerGroup().addTo(map);
+      const reportsLayerGroup = L.layerGroup().addTo(map);
+
+      let inspectionDangerCircle = null;
+
+      // Backend API Base URL
+      const API_BASE = window.location.origin.includes('http') ? window.location.origin : 'http://127.0.0.1:5000';
 
       // Array to store all loaded emergency service points: { lat, lng, type, name }
       let fetchedEmergencyServices = [];
 
       // Severity Color Palette
+      // Yellow for very minor inconvenience, Orange for normal, Red for extreme
       const severityColors = {
         High: '#ef4444',    // Red
         Medium: '#f97316',  // Orange
@@ -1245,7 +1308,8 @@
 
       // Function to render a permanent colored marker for a report
       function drawReportMarker(report) {
-        const markerColor = severityColors[report.severity] || '#ef4444';
+        // Use color assigned by Python backend (report.color) or fallback to severity palette
+        const markerColor = report.color || severityColors[report.severity] || '#eab308';
         const count = report.report_count || 1;
         const isConfirmed = count >= 5;
 
@@ -1266,9 +1330,9 @@
           reportMarker = L.marker([report.lat, report.lng], {
             icon: customIcon,
             zIndexOffset: 1500
-          }).addTo(map);
+          }).addTo(reportsLayerGroup);
         } else {
-          // Standard report (< 5 reports): original circleMarker pin, no badge
+          // Standard report (< 5 reports): circleMarker pin with appropriate color (Yellow, Orange, Red)
           reportMarker = L.circleMarker([report.lat, report.lng], {
             radius: 9,
             fillColor: markerColor,
@@ -1276,7 +1340,7 @@
             weight: 2,
             opacity: 1,
             fillOpacity: 0.95
-          }).addTo(map);
+          }).addTo(reportsLayerGroup);
         }
 
         const catText = report.categories.length > 0
@@ -1486,9 +1550,138 @@
         }
       }
 
-      // Draw initial sample report markers on load
-      reports.forEach(r => drawReportMarker(r));
-      renderReportsFeed();
+      // Fetch saved reports from Python SQLite backend and mark them on the map
+      async function loadReportsFromBackend() {
+        try {
+          const res = await fetch(`${API_BASE}/reports`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              reports = data;
+              console.log(`[SafeRoute Backend] Loaded ${data.length} reports with assigned colors from SQLite.`);
+            }
+          }
+        } catch (err) {
+          console.warn('[SafeRoute Backend] Could not reach Python backend API; displaying local sample reports.', err);
+        }
+
+        // Draw markers on map with correct colors
+        reportsLayerGroup.clearLayers();
+        reports.forEach(r => drawReportMarker(r));
+        renderReportsFeed();
+
+        // Fetch and draw 500m Danger Zones (>= 10 high severity reports)
+        fetchAndDrawDangerZones();
+      }
+
+      // -------------------------------------------------------------
+      // Fetch and Draw 500m Danger Zones (>= 10 High Reports)
+      // -------------------------------------------------------------
+      async function fetchAndDrawDangerZones() {
+        dangerZoneLayerGroup.clearLayers();
+        try {
+          const res = await fetch(`${API_BASE}/danger-zones?radius=500&threshold=10`);
+          if (res.ok) {
+            const data = await res.json();
+            const zones = data.danger_zones || [];
+            zones.forEach(dz => {
+              // 500m Danger Perimeter Circle
+              const circle = L.circle([dz.center_lat, dz.center_lng], {
+                radius: dz.radius_meters || 500,
+                color: '#ef4444',
+                weight: 3,
+                dashArray: '8, 6',
+                fillColor: '#ef4444',
+                fillOpacity: 0.22,
+                zIndexOffset: 100
+              }).addTo(dangerZoneLayerGroup);
+
+              circle.bindPopup(`
+                <div style="padding: 6px;">
+                  <div style="color: #ef4444; font-weight: 800; font-size: 0.95rem; margin-bottom: 4px;">
+                    🚨 DANGER ZONE (500m Perimeter)
+                  </div>
+                  <div style="font-size: 0.8rem; color: #f8fafc; line-height: 1.4;">
+                    <b>${dz.high_report_count} High Severity Reports</b> logged within this 500-meter zone.<br>
+                    <span style="color: #fca5a5; font-weight: 700;">⚠️ Extreme Caution Advised!</span>
+                  </div>
+                </div>
+              `);
+
+              // Danger Zone Center Hazard Badge
+              const badgeIcon = L.divIcon({
+                className: 'danger-zone-badge-container',
+                html: `
+                  <div style="background: rgba(239, 68, 68, 0.95); color: #ffffff; border: 2px solid #ffffff; border-radius: 20px; padding: 4px 10px; font-weight: 800; font-size: 11px; white-space: nowrap; box-shadow: 0 0 16px rgba(239, 68, 68, 0.9); display: flex; align-items: center; gap: 5px;">
+                    ⚠️ DANGER ZONE (${dz.high_report_count} High Reports)
+                  </div>`,
+                iconSize: [180, 26],
+                iconAnchor: [90, 13]
+              });
+
+              L.marker([dz.center_lat, dz.center_lng], {
+                icon: badgeIcon,
+                zIndexOffset: 500
+              }).addTo(dangerZoneLayerGroup);
+            });
+          }
+        } catch (err) {
+          console.warn('[SafeRoute Backend] Could not fetch danger zones from API:', err);
+        }
+      }
+
+      // Check if location clicked is in a 500m danger zone
+      async function checkLocationDanger(lat, lng) {
+        const alertEl = document.getElementById('danger-zone-alert');
+        const alertDetailEl = document.getElementById('danger-alert-detail');
+
+        if (inspectionDangerCircle) {
+          map.removeLayer(inspectionDangerCircle);
+          inspectionDangerCircle = null;
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/check-danger?lat=${lat}&lng=${lng}&radius=500&threshold=10`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.is_danger_zone) {
+              if (alertDetailEl) {
+                alertDetailEl.innerHTML = `⚠️ <b>${data.high_severity_count} High Severity Reports</b> detected within 500m of this location!`;
+              }
+              if (alertEl) alertEl.classList.remove('hidden');
+
+              // Draw 500m red inspection circle around selected point
+              inspectionDangerCircle = L.circle([lat, lng], {
+                radius: 500,
+                color: '#ef4444',
+                weight: 2.5,
+                dashArray: '6, 6',
+                fillColor: '#ef4444',
+                fillOpacity: 0.18
+              }).addTo(map);
+
+              if (tempMarker) {
+                tempMarker.bindPopup(`
+                  <div style="padding: 4px;">
+                    <div class="popup-title" style="color: #ef4444;">🚨 INSIDE DANGER ZONE</div>
+                    <div class="popup-desc">
+                      <b>${data.high_severity_count} High Severity reports</b> within 500m!<br>
+                      Lat: <b>${lat.toFixed(5)}</b> | Lng: <b>${lng.toFixed(5)}</b>
+                    </div>
+                  </div>
+                `).openPopup();
+              }
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Error checking danger zone from API:', err);
+        }
+
+        if (alertEl) alertEl.classList.add('hidden');
+      }
+
+      loadReportsFromBackend();
 
       // Trigger initial Overpass API fetch on load
       fetchNearbyEmergencyServices();
@@ -1753,6 +1946,9 @@
         sidebarFormContainer.classList.remove('hidden');
         formCoordsVal.textContent = `${formattedLat}, ${formattedLng}`;
 
+        // Check if inspected location falls inside a 500m Danger Zone (>= 10 High Reports)
+        checkLocationDanger(selectedLatLng.lat, selectedLatLng.lng);
+
         // Scroll sidebar to form
         sidebarFormContainer.scrollIntoView({ behavior: 'smooth' });
       });
@@ -1767,14 +1963,20 @@
           map.removeLayer(tempMarker);
           tempMarker = null;
         }
+        if (inspectionDangerCircle) {
+          map.removeLayer(inspectionDangerCircle);
+          inspectionDangerCircle = null;
+        }
+        const alertEl = document.getElementById('danger-zone-alert');
+        if (alertEl) alertEl.classList.add('hidden');
         selectedLatLng = null;
         safetyForm.reset();
         sidebarFormContainer.classList.add('hidden');
         sidebarPlaceholder.style.display = 'flex';
       }
 
-      // Form Submit Handler
-      safetyForm.addEventListener('submit', (e) => {
+      // Form Submit Handler (Sends data to Python backend -> saves in DB -> marks on map)
+      safetyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         if (!selectedLatLng) return;
@@ -1785,29 +1987,59 @@
         ).map(cb => cb.value);
 
         const description = document.getElementById('description-input').value.trim();
+        const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        const newReport = {
-          id: Date.now(),
+        const reportPayload = {
           lat: selectedLatLng.lat,
           lng: selectedLatLng.lng,
           severity: severity,
           categories: checkedCategories,
           description: description,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          report_count: 1
+          timestamp: currentTime
         };
 
-        // 1. Add report to in-memory array
-        reports.push(newReport);
+        let savedReport = null;
+
+        try {
+          const response = await fetch(`${API_BASE}/reports`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reportPayload)
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            savedReport = data.report;
+            console.log('[SafeRoute Backend] Report successfully saved in database:', savedReport);
+          }
+        } catch (err) {
+          console.warn('[SafeRoute Backend] Server unreachable; saving report in local session:', err);
+        }
+
+        // If backend returned saved report with color, use it; else fallback locally
+        if (!savedReport) {
+          savedReport = {
+            id: Date.now(),
+            ...reportPayload,
+            color: severityColors[severity] || '#eab308',
+            report_count: 1
+          };
+        }
+
+        // 1. Add report to active reports array (at the beginning for most recent)
+        reports.unshift(savedReport);
 
         // 2. Draw permanent colored marker on map
-        drawReportMarker(newReport);
+        drawReportMarker(savedReport);
 
-        // 3. Update Sidebar Feed (most recent first) & counts
+        // 3. Update Sidebar Feed & counts
         renderReportsFeed();
 
         // 4. Clear form & temporary marker
         resetFormState();
+
+        // 5. Refresh danger zones in case new report forms or expands a zone
+        fetchAndDrawDangerZones();
       });
 
       // Render reports list in sidebar & update severity badge counters
