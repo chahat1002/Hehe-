@@ -1,134 +1,219 @@
-"""When it comes to combining multiple controller or view functions
-(however you want to call them) you need a dispatcher. A simple way
-would be applying regular expression tests on the ``PATH_INFO`` and
-calling registered callback functions that return the value then.
+#   __
+#  /__)  _  _     _   _ _/   _
+# / (   (- (/ (/ (- _)  /  _)
+#          /
 
-This module implements a much more powerful system than simple regular
-expression matching because it can also convert values in the URLs and
-build URLs.
+"""
+Requests HTTP Library
+~~~~~~~~~~~~~~~~~~~~~
 
-Here a simple example that creates a URL map for an application with
-two subdomains (www and kb) and some URL rules:
+Requests is an HTTP library, written in Python, for human beings.
+Basic GET usage:
 
-.. code-block:: python
+   >>> import requests
+   >>> r = requests.get('https://www.python.org')
+   >>> r.status_code
+   200
+   >>> b'Python is a programming language' in r.content
+   True
 
-    m = Map([
-        # Static URLs
-        Rule('/', endpoint='static/index'),
-        Rule('/about', endpoint='static/about'),
-        Rule('/help', endpoint='static/help'),
-        # Knowledge Base
-        Subdomain('kb', [
-            Rule('/', endpoint='kb/index'),
-            Rule('/browse/', endpoint='kb/browse'),
-            Rule('/browse/<int:id>/', endpoint='kb/browse'),
-            Rule('/browse/<int:id>/<int:page>', endpoint='kb/browse')
-        ])
-    ], default_subdomain='www')
+... or POST:
 
-If the application doesn't use subdomains it's perfectly fine to not set
-the default subdomain and not use the `Subdomain` rule factory. The
-endpoint in the rules can be anything, for example import paths or
-unique identifiers. The WSGI application can use those endpoints to get the
-handler for that URL.  It doesn't have to be a string at all but it's
-recommended.
+   >>> payload = dict(key1='value1', key2='value2')
+   >>> r = requests.post('https://httpbin.org/post', data=payload)
+   >>> print(r.text)
+   {
+     ...
+     "form": {
+       "key1": "value1",
+       "key2": "value2"
+     },
+     ...
+   }
 
-Now it's possible to create a URL adapter for one of the subdomains and
-build URLs:
+The other HTTP methods are supported - see `requests.api`. Full documentation
+is at <https://requests.readthedocs.io>.
 
-.. code-block:: python
-
-    c = m.bind('example.com')
-
-    c.build("kb/browse", dict(id=42))
-    'http://kb.example.com/browse/42/'
-
-    c.build("kb/browse", dict())
-    'http://kb.example.com/browse/'
-
-    c.build("kb/browse", dict(id=42, page=3))
-    'http://kb.example.com/browse/42/3'
-
-    c.build("static/about")
-    '/about'
-
-    c.build("static/index", force_external=True)
-    'http://www.example.com/'
-
-    c = m.bind('example.com', subdomain='kb')
-
-    c.build("static/about")
-    'http://www.example.com/about'
-
-The first argument to bind is the server name *without* the subdomain.
-Per default it will assume that the script is mounted on the root, but
-often that's not the case so you can provide the real mount point as
-second argument:
-
-.. code-block:: python
-
-    c = m.bind('example.com', '/applications/example')
-
-The third argument can be the subdomain, if not given the default
-subdomain is used.  For more details about binding have a look at the
-documentation of the `MapAdapter`.
-
-And here is how you can match URLs:
-
-.. code-block:: python
-
-    c = m.bind('example.com')
-
-    c.match("/")
-    ('static/index', {})
-
-    c.match("/about")
-    ('static/about', {})
-
-    c = m.bind('example.com', '/', 'kb')
-
-    c.match("/")
-    ('kb/index', {})
-
-    c.match("/browse/42/23")
-    ('kb/browse', {'id': 42, 'page': 23})
-
-If matching fails you get a ``NotFound`` exception, if the rule thinks
-it's a good idea to redirect (for example because the URL was defined
-to have a slash at the end but the request was missing that slash) it
-will raise a ``RequestRedirect`` exception. Both are subclasses of
-``HTTPException`` so you can use those errors as responses in the
-application.
-
-If matching succeeded but the URL rule was incompatible to the given
-method (for example there were only rules for ``GET`` and ``HEAD`` but
-routing tried to match a ``POST`` request) a ``MethodNotAllowed``
-exception is raised.
+:copyright: (c) 2017 by Kenneth Reitz.
+:license: Apache 2.0, see LICENSE for more details.
 """
 
-from .converters import AnyConverter as AnyConverter
-from .converters import BaseConverter as BaseConverter
-from .converters import FloatConverter as FloatConverter
-from .converters import IntegerConverter as IntegerConverter
-from .converters import PathConverter as PathConverter
-from .converters import UnicodeConverter as UnicodeConverter
-from .converters import UUIDConverter as UUIDConverter
-from .converters import ValidationError as ValidationError
-from .exceptions import BuildError as BuildError
-from .exceptions import NoMatch as NoMatch
-from .exceptions import RequestAliasRedirect as RequestAliasRedirect
-from .exceptions import RequestPath as RequestPath
-from .exceptions import RequestRedirect as RequestRedirect
-from .exceptions import RoutingException as RoutingException
-from .exceptions import WebsocketMismatch as WebsocketMismatch
-from .map import Map as Map
-from .map import MapAdapter as MapAdapter
-from .matcher import StateMachineMatcher as StateMachineMatcher
-from .rules import EndpointPrefix as EndpointPrefix
-from .rules import parse_converter_args as parse_converter_args
-from .rules import Rule as Rule
-from .rules import RuleFactory as RuleFactory
-from .rules import RuleTemplate as RuleTemplate
-from .rules import RuleTemplateFactory as RuleTemplateFactory
-from .rules import Subdomain as Subdomain
-from .rules import Submount as Submount
+from __future__ import annotations
+
+import warnings
+
+import urllib3
+
+from .exceptions import RequestsDependencyWarning
+
+try:
+    from charset_normalizer import __version__ as charset_normalizer_version
+except ImportError:
+    charset_normalizer_version = None
+
+try:
+    from chardet import __version__ as chardet_version  # type: ignore[import-not-found]
+except ImportError:
+    chardet_version = None
+
+
+def check_compatibility(
+    urllib3_version: str,
+    chardet_version: str | None,
+    charset_normalizer_version: str | None,
+) -> None:
+    urllib3_version_list = urllib3_version.split(".")[:3]
+    assert urllib3_version_list != ["dev"]  # Verify urllib3 isn't installed from git.
+
+    # Sometimes, urllib3 only reports its version as 16.1.
+    if len(urllib3_version_list) == 2:
+        urllib3_version_list.append("0")
+
+    # Check urllib3 for compatibility.
+    major, minor, patch = urllib3_version_list  # noqa: F811
+    major, minor, patch = int(major), int(minor), int(patch)
+    # urllib3 >= 1.21.1
+    assert major >= 1
+    if major == 1:
+        assert minor >= 21
+
+    # Check charset_normalizer for compatibility.
+    if chardet_version:
+        major, minor, patch = chardet_version.split(".")[:3]
+        major, minor, patch = int(major), int(minor), int(patch)
+        # chardet_version >= 3.0.2, < 8.0.0
+        assert (3, 0, 2) <= (major, minor, patch) < (8, 0, 0)
+    elif charset_normalizer_version:
+        major, minor, patch = charset_normalizer_version.split(".")[:3]
+        major, minor, patch = int(major), int(minor), int(patch)
+        # charset_normalizer >= 2.0.0 < 4.0.0
+        assert (2, 0, 0) <= (major, minor, patch) < (4, 0, 0)
+    else:
+        warnings.warn(
+            "Unable to find acceptable character detection dependency "
+            "(chardet or charset_normalizer).",
+            RequestsDependencyWarning,
+        )
+
+
+def _check_cryptography(cryptography_version: str) -> None:
+    # cryptography < 1.3.4
+    try:
+        cryptography_version_list = list(map(int, cryptography_version.split(".")))
+    except ValueError:
+        return
+
+    if cryptography_version_list < [1, 3, 4]:
+        warning = f"Old version of cryptography ({cryptography_version_list}) may cause slowdown."
+        warnings.warn(warning, RequestsDependencyWarning)
+
+
+# Check imported dependencies for compatibility.
+try:
+    check_compatibility(
+        urllib3.__version__,  # type: ignore[reportPrivateImportUsage]
+        chardet_version,  # type: ignore[reportUnknownArgumentType]
+        charset_normalizer_version,
+    )
+except (AssertionError, ValueError):
+    warnings.warn(
+        f"urllib3 ({urllib3.__version__}) or chardet "  # type: ignore[reportPrivateImportUsage]
+        f"({chardet_version})/charset_normalizer ({charset_normalizer_version}) "
+        "doesn't match a supported version!",
+        RequestsDependencyWarning,
+    )
+
+# Attempt to enable urllib3's fallback for SNI support
+# if the standard library doesn't support SNI or the
+# 'ssl' library isn't available.
+try:
+    try:
+        import ssl
+    except ImportError:
+        ssl = None
+
+    if not getattr(ssl, "HAS_SNI", False):
+        from urllib3.contrib import pyopenssl
+
+        pyopenssl.inject_into_urllib3()
+
+        # Check cryptography version
+        from cryptography import (  # type: ignore[reportMissingImports]
+            __version__ as cryptography_version,  # type: ignore[reportUnknownVariableType]
+        )
+
+        _check_cryptography(cryptography_version)  # type: ignore[reportUnknownArgumentType]
+except ImportError:
+    pass
+
+# urllib3's DependencyWarnings should be silenced.
+from urllib3.exceptions import DependencyWarning
+
+warnings.simplefilter("ignore", DependencyWarning)
+
+# Set default logging handler to avoid "No handler found" warnings.
+import logging
+from logging import NullHandler
+
+from . import packages, utils
+from .__version__ import (
+    __author__,
+    __author_email__,
+    __build__,
+    __cake__,
+    __copyright__,
+    __description__,
+    __license__,
+    __title__,
+    __url__,
+    __version__,
+)
+from .api import delete, get, head, options, patch, post, put, request
+from .exceptions import (
+    ConnectionError,
+    ConnectTimeout,
+    FileModeWarning,
+    HTTPError,
+    JSONDecodeError,
+    ReadTimeout,
+    RequestException,
+    Timeout,
+    TooManyRedirects,
+    URLRequired,
+)
+from .models import PreparedRequest, Request, Response
+from .sessions import Session, session
+from .status_codes import codes
+
+__all__ = (
+    "ConnectionError",
+    "ConnectTimeout",
+    "HTTPError",
+    "JSONDecodeError",
+    "PreparedRequest",
+    "ReadTimeout",
+    "Request",
+    "RequestException",
+    "Response",
+    "Session",
+    "Timeout",
+    "TooManyRedirects",
+    "URLRequired",
+    "codes",
+    "delete",
+    "get",
+    "head",
+    "options",
+    "packages",
+    "patch",
+    "post",
+    "put",
+    "request",
+    "session",
+    "utils",
+)
+
+logging.getLogger(__name__).addHandler(NullHandler())
+
+# FileModeWarnings go off per the default.
+warnings.simplefilter("default", FileModeWarning, append=True)
